@@ -1,28 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/services/auth_service.dart';
-import '../../core/models/admin_user.dart';
+import '../../core/models/user_model.dart';
 
 class AuthController extends GetxController {
   final AuthService _authService = AuthService();
 
-  // Form controllers
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-
-  // Observable states - FIXED: Use simple Rx types
-  final isLoading = false.obs;
-  final isPasswordVisible = false.obs;
-  final rememberMe = false.obs;
-  final currentUser = Rxn<AdminUser>(); // FIXED: Use Rxn instead of Rx<AdminUser?>
-
   // Form key
-  final formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+  // Text controllers
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  // Observable states
+  final RxBool isLoading = false.obs;
+  final RxBool isPasswordVisible = false.obs;
+  final RxBool rememberMe = false.obs;
+
+  // User properties
+  final Rx<UserModel?> currentUser = Rx<UserModel?>(null);
+
+  // Getters for user properties
+  String get userName => currentUser.value?.name ?? getCurrentUserName() ?? 'Admin';
+  String get userEmail => currentUser.value?.email ?? getCurrentUserEmail() ?? '';
+  String get userRole => currentUser.value?.role ?? getCurrentUserRole() ?? 'Administrator';
+  String? get userProfileImage => currentUser.value?.profileImage;
 
   @override
   void onInit() {
     super.onInit();
+    _loadSavedCredentials();
     _loadCurrentUser();
+    print('🎉 AuthController initialized');
   }
 
   @override
@@ -32,140 +42,122 @@ class AuthController extends GetxController {
     super.onClose();
   }
 
-  // Load current user from storage
-  void _loadCurrentUser() {
-    currentUser.value = _authService.getCurrentUser();
+  void _loadSavedCredentials() {
+    final savedEmail = _authService.getSavedEmail();
+    if (savedEmail != null && savedEmail.isNotEmpty) {
+      emailController.text = savedEmail;
+      rememberMe.value = true;
+    }
   }
 
-  // Toggle password visibility
+  void _loadCurrentUser() {
+    if (_authService.isLoggedIn()) {
+      currentUser.value = _authService.getCurrentUserModel();
+    }
+  }
+
   void togglePasswordVisibility() {
     isPasswordVisible.value = !isPasswordVisible.value;
   }
 
-  // Toggle remember me
   void toggleRememberMe(bool? value) {
     rememberMe.value = value ?? false;
   }
 
-  // Login
   Future<void> login() async {
+    // Validate form
     if (!formKey.currentState!.validate()) {
+      Get.snackbar(
+        'Validation Error',
+        'Please fill in all fields correctly',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red.withOpacity(0.9),
+        colorText: Colors.white,
+        icon: Icon(Icons.error_outline, color: Colors.white),
+        duration: Duration(seconds: 3),
+      );
       return;
     }
 
-    isLoading.value = true;
-
     try {
-      final response = await _authService.login(
-        emailController.text.trim(),
-        passwordController.text,
+      isLoading.value = true;
+
+      final email = emailController.text.trim();
+      final password = passwordController.text.trim();
+
+      print('🔐 Attempting login with: $email');
+
+      // Perform login
+      final success = await _authService.login(
+        email: email,
+        password: password,
+        rememberMe: rememberMe.value,
       );
 
-      if (response['status'] == 'success') {
-        // Load user data
+      if (success) {
+        print('✅ Login successful');
+
+        // Load current user
         _loadCurrentUser();
 
-        // Show success message
         Get.snackbar(
           'Success',
-          'Welcome back, ${currentUser.value?.name ?? 'Admin'}!',
+          'Welcome to Naseej Admin!',
           snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.green.withOpacity(0.9),
           colorText: Colors.white,
+          icon: Icon(Icons.check_circle_outline, color: Colors.white),
           duration: Duration(seconds: 2),
         );
 
         // Navigate to dashboard
+        await Future.delayed(Duration(milliseconds: 500));
         Get.offAllNamed('/dashboard');
       } else {
-        // Show error message
-        Get.snackbar(
-          'Login Failed',
-          response['message'] ?? 'Invalid email or password',
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          duration: Duration(seconds: 3),
-        );
+        print('❌ Login failed');
+        _showErrorSnackbar('Invalid email or password');
       }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'An error occurred: $e',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        duration: Duration(seconds: 3),
-      );
+      print('💥 Login error: $e');
+      _showErrorSnackbar('An error occurred during login. Please try again.');
     } finally {
       isLoading.value = false;
     }
   }
 
-  // Logout
   Future<void> logout() async {
     try {
-      // Show confirmation dialog
-      final confirmed = await Get.dialog<bool>(
-        AlertDialog(
-          title: Text('Logout'),
-          content: Text('Are you sure you want to logout?'),
-          actions: [
-            TextButton(
-              onPressed: () => Get.back(result: false),
-              child: Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Get.back(result: true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
-              child: Text('Logout'),
-            ),
-          ],
-        ),
-      );
+      isLoading.value = true;
 
-      if (confirmed == true) {
-        isLoading.value = true;
+      await _authService.logout();
+      currentUser.value = null;
 
-        await _authService.logout();
-
-        // Clear user data
-        currentUser.value = null;
-
-        // Show success message
-        Get.snackbar(
-          'Logged Out',
-          'You have been successfully logged out',
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-          duration: Duration(seconds: 2),
-        );
-
-        // Navigate to login
-        Get.offAllNamed('/login');
-      }
-    } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to logout: $e',
+        'Logged Out',
+        'You have been successfully logged out',
         snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
+        backgroundColor: Colors.blue.withOpacity(0.9),
         colorText: Colors.white,
-        duration: Duration(seconds: 3),
+        icon: Icon(Icons.exit_to_app, color: Colors.white),
+        duration: Duration(seconds: 2),
       );
+
+      // Navigate to login
+      await Future.delayed(Duration(milliseconds: 500));
+      Get.offAllNamed('/login');
+    } catch (e) {
+      print('💥 Logout error: $e');
+      _showErrorSnackbar('An error occurred during logout');
     } finally {
       isLoading.value = false;
     }
   }
 
-  // Update profile
   Future<Map<String, dynamic>> updateProfile({
     required String name,
     required String email,
-    required String phone,
+    String? phone,
+    String? profileImage,
   }) async {
     try {
       isLoading.value = true;
@@ -177,39 +169,36 @@ class AuthController extends GetxController {
       );
 
       if (response['status'] == 'success') {
-        // Reload user data
-        _loadCurrentUser();
+        // Update current user
+        currentUser.value = UserModel(
+          id: currentUser.value?.id ?? '1',
+          name: name,
+          email: email,
+          role: currentUser.value?.role ?? 'Administrator',
+          phone: phone,
+          profileImage: profileImage,
+        );
 
         Get.snackbar(
           'Success',
           'Profile updated successfully',
-          backgroundColor: Colors.green,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.green.withOpacity(0.9),
           colorText: Colors.white,
-        );
-      } else {
-        Get.snackbar(
-          'Error',
-          response['message'] ?? 'Failed to update profile',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
+          icon: Icon(Icons.check_circle_outline, color: Colors.white),
         );
       }
 
       return response;
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to update profile: $e',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      return {'status': 'error', 'message': 'Failed to update profile: $e'};
+      print('💥 Update profile error: $e');
+      _showErrorSnackbar('Failed to update profile');
+      return {'status': 'error', 'message': 'Failed to update profile'};
     } finally {
       isLoading.value = false;
     }
   }
 
-  // Change password
   Future<Map<String, dynamic>> changePassword({
     required String oldPassword,
     required String newPassword,
@@ -226,64 +215,48 @@ class AuthController extends GetxController {
         Get.snackbar(
           'Success',
           'Password changed successfully',
-          backgroundColor: Colors.green,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.green.withOpacity(0.9),
           colorText: Colors.white,
-        );
-      } else {
-        Get.snackbar(
-          'Error',
-          response['message'] ?? 'Failed to change password',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
+          icon: Icon(Icons.check_circle_outline, color: Colors.white),
         );
       }
 
       return response;
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to change password: $e',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      return {'status': 'error', 'message': 'Failed to change password: $e'};
+      print('💥 Change password error: $e');
+      _showErrorSnackbar('Failed to change password');
+      return {'status': 'error', 'message': 'Failed to change password'};
     } finally {
       isLoading.value = false;
     }
   }
 
-  // Check if user is logged in - FIXED: Make this a simple getter
-  bool get isLoggedIn => _authService.isLoggedIn();
-
-  // Get user name - FIXED: Use proper reactive access
-  String get userName => currentUser.value?.name ?? 'Admin';
-
-  // Get user email
-  String get userEmail => currentUser.value?.email ?? '';
-
-  // Get user role
-  String get userRole => currentUser.value?.roleDisplayName ?? '';
-
-  // Get user profile image
-  String? get userProfileImage => currentUser.value?.profileImageUrl;
-
-  // Refresh user data
-  Future<void> refreshUserData() async {
-    try {
-      final response = await _authService.getProfile();
-      if (response['status'] == 'success') {
-        _loadCurrentUser();
-      }
-    } catch (e) {
-      print('Failed to refresh user data: $e');
-    }
+  void _showErrorSnackbar(String message) {
+    Get.snackbar(
+      'Error',
+      message,
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: Colors.red.withOpacity(0.9),
+      colorText: Colors.white,
+      icon: Icon(Icons.error_outline, color: Colors.white),
+      duration: Duration(seconds: 3),
+    );
   }
 
-  // Clear form
-  void clearForm() {
-    emailController.clear();
-    passwordController.clear();
-    isPasswordVisible.value = false;
-    rememberMe.value = false;
+  bool isLoggedIn() {
+    return _authService.isLoggedIn();
+  }
+
+  String? getCurrentUserEmail() {
+    return _authService.getCurrentUserEmail();
+  }
+
+  String? getCurrentUserName() {
+    return _authService.getCurrentUserName();
+  }
+
+  String? getCurrentUserRole() {
+    return _authService.getCurrentUserRole();
   }
 }

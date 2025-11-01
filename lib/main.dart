@@ -4,7 +4,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 // Core Services
 import 'core/services/storage_service.dart';
-import 'core/services/api_service.dart';
 import 'core/services/auth_service.dart';
 
 // Core Controllers
@@ -17,6 +16,18 @@ import 'core/constants/app_constants.dart';
 // Features
 import 'features/auth/login_page.dart';
 import 'features/dashboard/dashboard_page.dart';
+import 'features/products/products_page.dart';
+import 'features/products/add_product_page.dart';
+import 'features/categories/categories_page.dart';
+import 'features/categories/add_category_page.dart';
+import 'features/orders/orders_page.dart';
+import 'features/customers/customers_page.dart';
+import 'features/delivery/delivery_men_page.dart';
+import 'features/delivery/add_delivery_man_page.dart';
+import 'features/stores/stores_page.dart';
+import 'features/stores/add_store_page.dart';
+import 'features/settings/settings_page.dart';
+import 'features/settings/admin_profile_page.dart';
 
 // Widgets
 import 'widgets/app_sidebar.dart';
@@ -34,8 +45,6 @@ void main() async {
 }
 
 class NaseejAdminApp extends StatelessWidget {
-  final AuthController authController = Get.put(AuthController());
-
   NaseejAdminApp({Key? key}) : super(key: key);
 
   @override
@@ -46,22 +55,8 @@ class NaseejAdminApp extends StatelessWidget {
       theme: _buildLightTheme(),
       darkTheme: _buildDarkTheme(),
       themeMode: _getThemeMode(),
-      initialRoute: '/',
+      initialRoute: '/splash',
       getPages: _getAppRoutes(),
-      home: FutureBuilder(
-        future: _checkInitialAuth(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return _buildSplashScreen();
-          }
-          // FIXED: Use GetBuilder instead of Obx for simple state
-          return GetBuilder<AuthController>(
-            builder: (authController) {
-              return authController.isLoggedIn ? MainLayout() : LoginPage();
-            },
-          );
-        },
-      ),
       defaultTransition: Transition.fadeIn,
       transitionDuration: Duration(milliseconds: 300),
       locale: _getLocale(),
@@ -75,20 +70,6 @@ class NaseejAdminApp extends StatelessWidget {
         );
       },
     );
-  }
-
-  Widget _buildMainContent() {
-    return GetBuilder<AuthController>(
-      builder: (authController) {
-        return authController.isLoggedIn ? MainLayout() : LoginPage();
-      },
-    );
-  }
-
-  Future<bool> _checkInitialAuth() async {
-    // Check if user is already logged in
-    await Future.delayed(Duration(milliseconds: 500));
-    return authController.isLoggedIn; // This now uses the simple getter
   }
 
   ThemeData _buildLightTheme() {
@@ -113,7 +94,7 @@ class NaseejAdminApp extends StatelessWidget {
         titleTextStyle: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          fontFamily: 'PlayfairDisplay',
+          fontFamily: 'Cairo',
         ),
         iconTheme: IconThemeData(color: Colors.white),
       ),
@@ -122,19 +103,19 @@ class NaseejAdminApp extends StatelessWidget {
           fontSize: 32,
           fontWeight: FontWeight.bold,
           color: AppColors.primary,
-          fontFamily: 'PlayfairDisplay',
+          fontFamily: 'Cairo',
         ),
         displayMedium: TextStyle(
           fontSize: 28,
           fontWeight: FontWeight.bold,
           color: AppColors.primary,
-          fontFamily: 'PlayfairDisplay',
+          fontFamily: 'Cairo',
         ),
         displaySmall: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
           color: AppColors.primary,
-          fontFamily: 'PlayfairDisplay',
+          fontFamily: 'Cairo',
         ),
         headlineMedium: TextStyle(
           fontSize: 20,
@@ -263,126 +244,8 @@ class NaseejAdminApp extends StatelessWidget {
         titleTextStyle: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          fontFamily: 'PlayfairDisplay',
-        ),
-      ),
-      textTheme: TextTheme(
-        displayLarge: TextStyle(
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          fontFamily: 'PlayfairDisplay',
-        ),
-        displayMedium: TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          fontFamily: 'PlayfairDisplay',
-        ),
-        displaySmall: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          fontFamily: 'PlayfairDisplay',
-        ),
-        headlineMedium: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
           fontFamily: 'Cairo',
         ),
-        headlineSmall: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-          fontFamily: 'Cairo',
-        ),
-        titleLarge: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-          fontFamily: 'Cairo',
-        ),
-        bodyLarge: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.normal,
-          color: Colors.white70,
-          fontFamily: 'Cairo',
-        ),
-        bodyMedium: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.normal,
-          color: Colors.white70,
-          fontFamily: 'Cairo',
-        ),
-        bodySmall: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.normal,
-          color: Colors.white60,
-          fontFamily: 'Cairo',
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: AppColors.darkSurface,
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.white24),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.white24),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: AppColors.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: AppColors.error),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: AppColors.error, width: 2),
-        ),
-        labelStyle: TextStyle(
-          color: Colors.white60,
-          fontWeight: FontWeight.w500,
-        ),
-        hintStyle: TextStyle(
-          color: Colors.white60,
-        ),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          textStyle: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          elevation: 2,
-        ),
-      ),
-      cardTheme: CardThemeData(
-        color: AppColors.darkSurface,
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        margin: EdgeInsets.zero,
-      ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: AppColors.darkSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        elevation: 8,
       ),
       useMaterial3: false,
       fontFamily: 'Cairo',
@@ -416,9 +279,21 @@ class NaseejAdminApp extends StatelessWidget {
 
   List<GetPage> _getAppRoutes() {
     return [
-      GetPage(name: '/', page: () => MainLayout()),
+      GetPage(name: '/splash', page: () => SplashScreen()),
       GetPage(name: '/login', page: () => LoginPage()),
-      GetPage(name: '/dashboard', page: () => DashboardPage()),
+      GetPage(name: '/dashboard', page: () => MainLayout(child: DashboardPage())),
+      GetPage(name: '/products', page: () => MainLayout(child: ProductsPage())),
+      GetPage(name: '/products/add', page: () => MainLayout(child: AddProductPage())),
+      GetPage(name: '/categories', page: () => MainLayout(child: CategoriesPage())),
+      GetPage(name: '/categories/add', page: () => MainLayout(child: AddCategoryPage())),
+      GetPage(name: '/orders', page: () => MainLayout(child: OrdersPage())),
+      GetPage(name: '/customers', page: () => MainLayout(child: CustomersPage())),
+      GetPage(name: '/delivery', page: () => MainLayout(child: DeliveryMenPage())),
+      GetPage(name: '/delivery/add', page: () => MainLayout(child: AddDeliveryManPage())),
+      GetPage(name: '/stores', page: () => MainLayout(child: StoresPage())),
+      GetPage(name: '/stores/add', page: () => MainLayout(child: AddStorePage())),
+      GetPage(name: '/settings', page: () => MainLayout(child: SettingsPage())),
+      GetPage(name: '/admin/profile', page: () => MainLayout(child: AdminProfilePage())),
     ];
   }
 
@@ -429,8 +304,33 @@ class NaseejAdminApp extends StatelessWidget {
       print('📱 $text');
     }
   }
+}
 
-  Widget _buildSplashScreen() {
+class SplashScreen extends StatefulWidget {
+  @override
+  _SplashScreenState createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    await Future.delayed(Duration(seconds: 2));
+
+    final authService = AuthService();
+    if (authService.isLoggedIn()) {
+      Get.offAllNamed('/dashboard');
+    } else {
+      Get.offAllNamed('/login');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primary,
       body: Center(
@@ -468,7 +368,7 @@ class NaseejAdminApp extends StatelessWidget {
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
-                fontFamily: 'PlayfairDisplay',
+                fontFamily: 'Cairo',
               ),
             )
                 .animate()
@@ -504,9 +404,9 @@ class NaseejAdminApp extends StatelessWidget {
 }
 
 class MainLayout extends StatelessWidget {
-  final AuthController authController = Get.find<AuthController>();
+  final Widget child;
 
-  MainLayout({Key? key}) : super(key: key);
+  MainLayout({Key? key, required this.child}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -525,10 +425,7 @@ class MainLayout extends StatelessWidget {
                   showBackButton: Get.currentRoute != '/dashboard',
                 ),
                 Expanded(
-                  child: GetRouterOutlet(
-                    initialRoute: '/dashboard',
-                    anchorRoute: '/',
-                  ),
+                  child: child,
                 ),
               ],
             ),
@@ -546,20 +443,14 @@ class MainLayout extends StatelessWidget {
         return 'Products Management';
       case '/products/add':
         return 'Add New Product';
-      case var route when route.startsWith('/products/edit'):
-        return 'Edit Product';
       case '/categories':
         return 'Categories Management';
       case '/categories/add':
         return 'Add New Category';
       case '/orders':
         return 'Orders Management';
-      case var route when route.startsWith('/orders/details'):
-        return 'Order Details';
       case '/customers':
         return 'Customers Management';
-      case var route when route.startsWith('/customers/details'):
-        return 'Customer Details';
       case '/delivery':
         return 'Delivery Men Management';
       case '/delivery/add':
@@ -570,7 +461,7 @@ class MainLayout extends StatelessWidget {
         return 'Add New Store';
       case '/settings':
         return 'Settings';
-      case '/profile':
+      case '/admin/profile':
         return 'My Profile';
       default:
         return 'Naseej Admin';

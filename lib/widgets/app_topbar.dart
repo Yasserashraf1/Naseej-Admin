@@ -3,271 +3,169 @@ import 'package:get/get.dart';
 import '../core/constants/colors.dart';
 import '../features/auth/auth_controller.dart';
 
-class AppTopbar extends StatelessWidget implements PreferredSizeWidget {
+class AppTopbar extends StatelessWidget {
   final String title;
-  final List<Widget>? actions;
   final bool showBackButton;
 
   const AppTopbar({
     Key? key,
     required this.title,
-    this.actions,
     this.showBackButton = false,
   }) : super(key: key);
 
   @override
-  Size get preferredSize => Size.fromHeight(80);
-
-  @override
   Widget build(BuildContext context) {
-    final AuthController authController = Get.find<AuthController>();
+    final authController = Get.find<AuthController>();
 
     return Container(
-      height: preferredSize.height,
+      height: 70,
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black12,
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 4,
             offset: Offset(0, 2),
           ),
         ],
       ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Title and Breadcrumb
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (showBackButton)
-                    IconButton(
-                      onPressed: () => Get.back(),
-                      icon: Icon(Icons.arrow_back),
-                      padding: EdgeInsets.zero,
-                      constraints: BoxConstraints(),
-                      iconSize: 20,
+      padding: EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          if (showBackButton)
+            IconButton(
+              icon: Icon(Icons.arrow_back),
+              onPressed: () => Get.back(),
+            ),
+          if (showBackButton) SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+          Spacer(),
+          // Notifications
+          IconButton(
+            icon: Stack(
+              children: [
+                Icon(Icons.notifications_outlined, size: 28),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    padding: EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      shape: BoxShape.circle,
                     ),
-                  SizedBox(height: 4),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                    constraints: BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      '5',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
-                  SizedBox(height: 4),
-                  _buildBreadcrumb(),
-                ],
-              ),
-            ),
-
-            // Actions and User Info
-            Row(
-              children: [
-                // Notifications
-                _buildNotificationButton(),
-
-                // User Menu
-                _buildUserMenu(authController),
+                ),
               ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBreadcrumb() {
-    final currentRoute = Get.currentRoute;
-    final routes = currentRoute.split('/').where((r) => r.isNotEmpty).toList();
-
-    if (routes.isEmpty) {
-      return SizedBox();
-    }
-
-    return Row(
-      children: [
-        Text(
-          'Home',
-          style: TextStyle(
-            fontSize: 12,
-            color: AppColors.gray,
+            onPressed: () {
+              Get.snackbar(
+                'Notifications',
+                'You have 5 new notifications',
+                snackPosition: SnackPosition.TOP,
+              );
+            },
           ),
-        ),
-        ...routes.map((route) {
-          return Row(
-            children: [
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4),
-                child: Icon(
-                  Icons.chevron_right,
-                  size: 12,
-                  color: AppColors.gray,
+          SizedBox(width: 16),
+          // User Profile
+          PopupMenuButton<String>(
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppColors.primary,
+                  child: Text(
+                    (authController.getCurrentUserName() ?? 'A')[0].toUpperCase(),
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                SizedBox(width: 12),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      authController.getCurrentUserName() ?? 'Admin',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      authController.getCurrentUserRole() ?? 'Administrator',
+                      style: TextStyle(
+                        color: AppColors.gray,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(width: 8),
+                Icon(Icons.arrow_drop_down),
+              ],
+            ),
+            itemBuilder: (context) => <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(
+                value: 'profile',
+                child: ListTile(
+                  leading: Icon(Icons.person),
+                  title: Text('My Profile'),
+                  contentPadding: EdgeInsets.zero,
                 ),
               ),
-              Text(
-                _formatRouteName(route),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.gray,
+              PopupMenuItem<String>(
+                value: 'settings',
+                child: ListTile(
+                  leading: Icon(Icons.settings),
+                  title: Text('Settings'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              PopupMenuDivider(),
+              PopupMenuItem<String>(
+                value: 'logout',
+                child: ListTile(
+                  leading: Icon(Icons.logout, color: AppColors.error),
+                  title: Text('Logout', style: TextStyle(color: AppColors.error)),
+                  contentPadding: EdgeInsets.zero,
                 ),
               ),
             ],
-          );
-        }).toList(),
-      ],
-    );
-  }
-
-  String _formatRouteName(String route) {
-    // Convert route name to display format
-    // e.g., "orders" -> "Orders", "order-details" -> "Order Details"
-    return route
-        .split('-')
-        .map((word) => word[0].toUpperCase() + word.substring(1))
-        .join(' ');
-  }
-
-  Widget _buildNotificationButton() {
-    return Stack(
-      children: [
-        IconButton(
-          onPressed: () {
-            // Navigate to notifications page
-          },
-          icon: Icon(Icons.notifications_outlined),
-          tooltip: 'Notifications',
-        ),
-        Positioned(
-          right: 8,
-          top: 8,
-          child: Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: AppColors.error,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildUserMenu(AuthController authController) {
-    return Obx(() {
-      final user = authController.currentUser.value;
-      return PopupMenuButton<String>(
-        onSelected: (value) {
-          switch (value) {
-            case 'profile':
-              Get.toNamed('/profile');
-              break;
-            case 'settings':
-              Get.toNamed('/settings');
-              break;
-            case 'logout':
-              authController.logout();
-              break;
-          }
-        },
-        itemBuilder: (context) => [
-          PopupMenuItem(
-            value: 'profile',
-            child: Row(
-              children: [
-                Icon(Icons.person, size: 18),
-                SizedBox(width: 8),
-                Text('My Profile'),
-              ],
-            ),
-          ),
-          PopupMenuItem(
-            value: 'settings',
-            child: Row(
-              children: [
-                Icon(Icons.settings, size: 18),
-                SizedBox(width: 8),
-                Text('Settings'),
-              ],
-            ),
-          ),
-          PopupMenuDivider(),
-          PopupMenuItem(
-            value: 'logout',
-            child: Row(
-              children: [
-                Icon(Icons.logout, size: 18, color: AppColors.error),
-                SizedBox(width: 8),
-                Text('Logout', style: TextStyle(color: AppColors.error)),
-              ],
-            ),
+            onSelected: (value) {
+              switch (value) {
+                case 'profile':
+                  Get.toNamed('/admin/profile');
+                  break;
+                case 'settings':
+                  Get.toNamed('/settings');
+                  break;
+                case 'logout':
+                  authController.logout();
+                  break;
+              }
+            },
           ),
         ],
-        child: Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.lightGray),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  image: user?.profileImageUrl != null
-                      ? DecorationImage(
-                    image: NetworkImage(user!.profileImageUrl!),
-                    fit: BoxFit.cover,
-                  )
-                      : null,
-                  color: AppColors.lightGray,
-                ),
-                child: user?.profileImageUrl == null
-                    ? Icon(Icons.person, size: 16, color: AppColors.gray)
-                    : null,
-              ),
-              SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    user?.name.split(' ').first ?? 'Admin',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    user?.roleDisplayName ?? 'Admin',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: AppColors.gray,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(width: 4),
-              Icon(
-                Icons.arrow_drop_down,
-                color: AppColors.gray,
-                size: 16,
-              ),
-            ],
-          ),
-        ),
-      );
-    });
+      ),
+    );
   }
 }

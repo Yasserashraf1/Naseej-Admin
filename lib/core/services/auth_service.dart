@@ -1,171 +1,189 @@
-import '../constants/api_endpoints.dart';
-import '../models/admin_user.dart';
-import 'api_service.dart';
 import 'storage_service.dart';
+import '../models/user_model.dart';
+import '../models/admin_user.dart';
 
 class AuthService {
-  final ApiService _apiService = ApiService();
+  static const String _tokenKey = 'auth_token';
+  static const String _userEmailKey = 'user_email';
+  static const String _userNameKey = 'user_name';
+  static const String _userRoleKey = 'user_role';
+  static const String _savedEmailKey = 'saved_email';
 
-  // Login
-  Future<Map<String, dynamic>> login(String email, String password) async {
-    try {
-      final response = await _apiService.postForm(
-        ApiEndpoints.adminLogin,
-        {
-          'email': email,
-          'password': password,
-        },
-      );
+  // Demo credentials (in production, this should call a real API)
+  static const Map<String, Map<String, String>> _demoUsers = {
+    'admin@naseej.com': {
+      'password': 'admin123',
+      'name': 'Admin User',
+      'role': 'Super Administrator',
+      'id': '1',
+    },
+    'manager@naseej.com': {
+      'password': 'manager123',
+      'name': 'Manager User',
+      'role': 'Store Manager',
+      'id': '2',
+    },
+  };
 
-      if (response['status'] == 'success') {
-        // Save token
-        if (response['token'] != null) {
-          await StorageService.saveToken(response['token']);
-        }
-
-        // Save user data
-        if (response['data'] != null) {
-          final user = AdminUser.fromJson(response['data']);
-          await StorageService.saveUser(user);
-        }
-      }
-
-      return response;
-    } catch (e) {
-      return {'status': 'error', 'message': 'Login failed: $e'};
-    }
-  }
-
-  // Register (if needed for new admins)
-  Future<Map<String, dynamic>> register({
-    required String name,
+  Future<bool> login({
     required String email,
     required String password,
-    required String role,
+    bool rememberMe = false,
   }) async {
     try {
-      final response = await _apiService.postForm(
-        ApiEndpoints.adminRegister,
-        {
-          'name': name,
-          'email': email,
-          'password': password,
-          'role': role,
-        },
-      );
+      // Simulate API delay
+      await Future.delayed(Duration(seconds: 1));
 
-      return response;
-    } catch (e) {
-      return {'status': 'error', 'message': 'Registration failed: $e'};
-    }
-  }
+      // Check demo credentials
+      if (_demoUsers.containsKey(email)) {
+        final user = _demoUsers[email]!;
+        if (user['password'] == password) {
+          // Save authentication data
+          await StorageService.saveString(_tokenKey, 'demo_token_${DateTime.now().millisecondsSinceEpoch}');
+          await StorageService.saveString(_userEmailKey, email);
+          await StorageService.saveString(_userNameKey, user['name']!);
+          await StorageService.saveString(_userRoleKey, user['role']!);
 
-  // Logout
-  Future<Map<String, dynamic>> logout() async {
-    try {
-      // Call logout API (optional)
-      await _apiService.post(ApiEndpoints.adminLogout, {});
+          // Save email if remember me is checked
+          if (rememberMe) {
+            await StorageService.saveString(_savedEmailKey, email);
+          } else {
+            await StorageService.remove(_savedEmailKey);
+          }
 
-      // Clear local storage
-      await StorageService.clearAll();
-
-      return {'status': 'success', 'message': 'Logged out successfully'};
-    } catch (e) {
-      // Even if API fails, clear local storage
-      await StorageService.clearAll();
-      return {'status': 'success', 'message': 'Logged out successfully'};
-    }
-  }
-
-  // Get current user
-  AdminUser? getCurrentUser() {
-    return StorageService.getUser();
-  }
-
-  // Check if logged in
-  bool isLoggedIn() {
-    return StorageService.isLoggedIn;
-  }
-
-  // Get user profile
-  Future<Map<String, dynamic>> getProfile() async {
-    try {
-      final response = await _apiService.get(ApiEndpoints.adminProfile);
-
-      if (response['status'] == 'success' && response['data'] != null) {
-        final user = AdminUser.fromJson(response['data']);
-        await StorageService.saveUser(user);
+          return true;
+        }
       }
 
-      return response;
+      return false;
     } catch (e) {
-      return {'status': 'error', 'message': 'Failed to fetch profile: $e'};
+      print('Login error: $e');
+      return false;
     }
   }
 
-  // Update profile
+  Future<void> logout() async {
+    await StorageService.remove(_tokenKey);
+    await StorageService.remove(_userEmailKey);
+    await StorageService.remove(_userNameKey);
+    await StorageService.remove(_userRoleKey);
+  }
+
+  bool isLoggedIn() {
+    final token = StorageService.getString(_tokenKey);
+    return token != null && token.isNotEmpty;
+  }
+
+  String? getCurrentUserEmail() {
+    return StorageService.getString(_userEmailKey);
+  }
+
+  String? getCurrentUserName() {
+    return StorageService.getString(_userNameKey);
+  }
+
+  String? getCurrentUserRole() {
+    return StorageService.getString(_userRoleKey);
+  }
+
+  // Return AdminUser (for compatibility with existing code)
+  AdminUser? getCurrentUser() {
+    final email = getCurrentUserEmail();
+    final name = getCurrentUserName();
+    final role = getCurrentUserRole();
+
+    if (email != null && name != null && role != null) {
+      // Find user ID from demo users
+      String userId = '1';
+      for (var entry in _demoUsers.entries) {
+        if (entry.key == email) {
+          userId = entry.value['id'] ?? '1';
+          break;
+        }
+      }
+
+      return AdminUser(
+        id: userId,
+        name: name,
+        email: email,
+        role: role,
+        createdAt: DateTime.now(),
+      );
+    }
+
+    return null;
+  }
+
+  // Return UserModel (for auth controller)
+  UserModel? getCurrentUserModel() {
+    final email = getCurrentUserEmail();
+    final name = getCurrentUserName();
+    final role = getCurrentUserRole();
+
+    if (email != null && name != null && role != null) {
+      // Find user ID from demo users
+      String userId = '1';
+      for (var entry in _demoUsers.entries) {
+        if (entry.key == email) {
+          userId = entry.value['id'] ?? '1';
+          break;
+        }
+      }
+
+      return UserModel(
+        id: userId,
+        name: name,
+        email: email,
+        role: role,
+        createdAt: DateTime.now(),
+      );
+    }
+
+    return null;
+  }
+
+  Future<void> updateUserData({
+    required String name,
+    required String email,
+  }) async {
+    await StorageService.saveString(_userNameKey, name);
+    await StorageService.saveString(_userEmailKey, email);
+  }
+
+  // Update profile (returns Map for compatibility)
   Future<Map<String, dynamic>> updateProfile({
-    String? name,
-    String? email,
+    required String name,
+    required String email,
     String? phone,
   }) async {
     try {
-      final data = <String, dynamic>{};
-      if (name != null) data['name'] = name;
-      if (email != null) data['email'] = email;
-      if (phone != null) data['phone'] = phone;
-
-      final response = await _apiService.post(
-        ApiEndpoints.adminProfile,
-        data,
-      );
-
-      if (response['status'] == 'success' && response['data'] != null) {
-        final user = AdminUser.fromJson(response['data']);
-        await StorageService.saveUser(user);
-      }
-
-      return response;
+      await Future.delayed(Duration(seconds: 1));
+      await updateUserData(name: name, email: email);
+      return {'status': 'success', 'message': 'Profile updated successfully'};
     } catch (e) {
-      return {'status': 'error', 'message': 'Failed to update profile: $e'};
+      return {'status': 'error', 'message': 'Failed to update profile'};
     }
   }
 
-  // Change password
+  // Change password (returns Map for compatibility)
   Future<Map<String, dynamic>> changePassword({
     required String oldPassword,
     required String newPassword,
   }) async {
     try {
-      final response = await _apiService.post(
-        '${ApiEndpoints.baseUrl}/admin/change_password.php',
-        {
-          'old_password': oldPassword,
-          'new_password': newPassword,
-        },
-      );
-
-      return response;
+      await Future.delayed(Duration(seconds: 1));
+      // In production, verify old password and update
+      return {'status': 'success', 'message': 'Password changed successfully'};
     } catch (e) {
-      return {'status': 'error', 'message': 'Failed to change password: $e'};
+      return {'status': 'error', 'message': 'Failed to change password'};
     }
   }
 
-  // Refresh token (if using JWT with refresh tokens)
-  Future<Map<String, dynamic>> refreshToken() async {
-    try {
-      final response = await _apiService.post(
-        '${ApiEndpoints.baseUrl}/admin/refresh_token.php',
-        {},
-      );
+  String? getSavedEmail() {
+    return StorageService.getString(_savedEmailKey);
+  }
 
-      if (response['status'] == 'success' && response['token'] != null) {
-        await StorageService.saveToken(response['token']);
-      }
-
-      return response;
-    } catch (e) {
-      return {'status': 'error', 'message': 'Failed to refresh token: $e'};
-    }
+  String? getAuthToken() {
+    return StorageService.getString(_tokenKey);
   }
 }

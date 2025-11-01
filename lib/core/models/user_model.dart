@@ -1,4 +1,4 @@
-class AdminUser {
+class UserModel {
   final String id;
   final String name;
   final String email;
@@ -6,9 +6,8 @@ class AdminUser {
   final String? phone;
   final String? profileImage;
   final DateTime? createdAt;
-  final List<String>? permissions;
 
-  AdminUser({
+  UserModel({
     required this.id,
     required this.name,
     required this.email,
@@ -16,11 +15,10 @@ class AdminUser {
     this.phone,
     this.profileImage,
     this.createdAt,
-    this.permissions,
   });
 
-  factory AdminUser.fromJson(Map<String, dynamic> json) {
-    return AdminUser(
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    return UserModel(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
       email: json['email'] ?? '',
@@ -29,9 +27,6 @@ class AdminUser {
       profileImage: json['profileImage'],
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
-          : null,
-      permissions: json['permissions'] != null
-          ? List<String>.from(json['permissions'])
           : null,
     );
   }
@@ -45,11 +40,10 @@ class AdminUser {
       'phone': phone,
       'profileImage': profileImage,
       'createdAt': createdAt?.toIso8601String(),
-      'permissions': permissions,
     };
   }
 
-  AdminUser copyWith({
+  UserModel copyWith({
     String? id,
     String? name,
     String? email,
@@ -57,9 +51,8 @@ class AdminUser {
     String? phone,
     String? profileImage,
     DateTime? createdAt,
-    List<String>? permissions,
   }) {
-    return AdminUser(
+    return UserModel(
       id: id ?? this.id,
       name: name ?? this.name,
       email: email ?? this.email,
@@ -67,20 +60,6 @@ class AdminUser {
       phone: phone ?? this.phone,
       profileImage: profileImage ?? this.profileImage,
       createdAt: createdAt ?? this.createdAt,
-      permissions: permissions ?? this.permissions,
-    );
-  }
-
-  // Convert from UserModel to AdminUser
-  factory AdminUser.fromUserModel(dynamic userModel) {
-    return AdminUser(
-      id: userModel.id,
-      name: userModel.name,
-      email: userModel.email,
-      role: userModel.role,
-      phone: userModel.phone,
-      profileImage: userModel.profileImage,
-      createdAt: userModel.createdAt,
     );
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/colors.dart';
 import '../../core/utils/validators.dart';
 import 'auth_controller.dart';
@@ -70,10 +69,11 @@ class LoginPage extends StatelessWidget {
                           // Title
                           Text(
                             'Naseej Admin',
-                            style: GoogleFonts.playfairDisplay(
+                            style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
                               color: AppColors.primary,
+                              fontFamily: 'Cairo',
                             ),
                           ),
 
@@ -131,25 +131,29 @@ class LoginPage extends StatelessWidget {
 
                           SizedBox(height: 16),
 
-                          // Remember Me & Forgot Password
-                          Row(
+                          // Remember Me & Forgot Password - FIXED OVERFLOW
+                          Column(
                             children: [
-                              Obx(() => Checkbox(
+                              Obx(() => CheckboxListTile(
                                 value: controller.rememberMe.value,
                                 onChanged: controller.toggleRememberMe,
                                 activeColor: AppColors.primary,
+                                title: Text('Remember me'),
+                                controlAffinity: ListTileControlAffinity.leading,
+                                contentPadding: EdgeInsets.zero,
                               )),
-                              Text('Remember me'),
-                              Spacer(),
-                              TextButton(
-                                onPressed: () {
-                                  Get.snackbar(
-                                    'Coming Soon',
-                                    'Forgot password feature will be available soon',
-                                    snackPosition: SnackPosition.TOP,
-                                  );
-                                },
-                                child: Text('Forgot Password?'),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () {
+                                    Get.snackbar(
+                                      'Coming Soon',
+                                      'Forgot password feature will be available soon',
+                                      snackPosition: SnackPosition.TOP,
+                                    );
+                                  },
+                                  child: Text('Forgot Password?'),
+                                ),
                               ),
                             ],
                           ),
